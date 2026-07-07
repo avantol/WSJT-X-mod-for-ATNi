@@ -391,6 +391,16 @@ QString DisplayText::appendWorkedB4 (QString message, QString call, QString cons
     {
       types.push_back (Highlight::LotW);
     }
+  // HRAL Member highlight: in Fox mode, plus in normal (no special operating activity) mode
+  // for diagnostic visibility. Requires a loaded member list.
+  if (m_hralMembers && !m_hralMembers->isEmpty ()
+      && m_config
+      && (m_config->special_op_id () == Configuration::SpecialOperatingActivity::FOX
+          || m_config->special_op_id () == Configuration::SpecialOperatingActivity::NONE)
+      && m_hralMembers->contains (Radio::base_callsign (call).toUpper ()))
+    {
+      types.push_back (Highlight::HRAL);
+    }
   types.push_back (Highlight::CQ);
   auto top_highlight = set_colours (m_config, bg, fg, types);
 
@@ -693,6 +703,18 @@ void DisplayText::displayDecodedText(DecodedText const& decodedText, QString con
     }
   }
 
+  // HRAL Member override: in Fox mode or normal (no special activity) mode, if the sender
+  // is on the loaded HRAL list and the highlight is enabled, apply HRAL colours regardless
+  // of what earlier branches decided (CQ / MyCall / plain / etc.).
+  if (m_hralMembers && !m_hralMembers->isEmpty ()
+      && m_config
+      && (m_config->special_op_id () == Configuration::SpecialOperatingActivity::FOX
+          || m_config->special_op_id () == Configuration::SpecialOperatingActivity::NONE)
+      && m_hralMembers->contains (Radio::base_callsign (dxCall).toUpper ()))
+    {
+      highlight_types types { Highlight::HRAL };
+      set_colours (m_config, &bg, &fg, types);
+    }
   insertText (message.trimmed (), bg, fg, decodedText.call (), dxCall);
 }
 
@@ -752,18 +774,28 @@ void DisplayText::displayHoundToBeCalled(QString t, bool bAtTop, QColor bg, QCol
 }
 
 void DisplayText::setHighlightedHoundText(QString t) {
-  QColor bg=QColor{255,255,255};
-  QColor fg=QColor{0,0,0};
-  highlight_types types{Highlight::Call};
-  set_colours(m_config, &bg, &fg, types);
+  bool allowHral = m_config
+                   && (m_config->special_op_id () == Configuration::SpecialOperatingActivity::FOX
+                       || m_config->special_op_id () == Configuration::SpecialOperatingActivity::NONE);
+  bool hralAvailable = m_hralMembers && !m_hralMembers->isEmpty ();
   // t is multiple lines of text, each line is a hound calling
-  // iterate through each line and highlight the callsign
+  // iterate through each line, decide highlight types per-callsign, apply colours per-line
   auto lines = t.split(QChar('\n'), SkipEmptyParts);
   clear();
   foreach (auto line, lines)
   {
     auto fields = line.split(QChar(' '), SkipEmptyParts);
-    insertText(line, bg, fg, fields.first(), QString{});
+    QString call = fields.first();
+    highlight_types types{Highlight::Call};
+    if (allowHral && hralAvailable
+        && m_hralMembers->contains (Radio::base_callsign (call).toUpper ()))
+    {
+      types.push_back (Highlight::HRAL);
+    }
+    QColor bg=QColor{255,255,255};
+    QColor fg=QColor{0,0,0};
+    set_colours(m_config, &bg, &fg, types);
+    insertText(line, bg, fg, call, QString{});
   }
 }
 

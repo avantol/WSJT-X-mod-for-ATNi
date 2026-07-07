@@ -567,6 +567,8 @@ MainWindow::MainWindow(QDir const& temp_directory, bool multiple,
   ui->sbTR_FST4W->values ({120, 300, 900, 1800});
   ui->decodedTextBrowser->set_configuration (&m_config, true);
   ui->decodedTextBrowser2->set_configuration (&m_config);
+  ui->decodedTextBrowser->setHralMembers (&m_hralMembers);
+  ui->decodedTextBrowser2->setHralMembers (&m_hralMembers);
 
   // IOTA-HRAL membership filter setup: load list, set checkbox state,
   // watch the file (and its directory) for changes so an updated list takes effect without restart.
@@ -11063,6 +11065,7 @@ void MainWindow::on_actionFT8_triggered()
   //                         01234567890123456789012345678901234567
     displayWidgets(nWidgets("11101000010011100001000000000011000000"));
     ui->cbRxAll->setText(tr("Show Already Worked"));
+    ui->cbRxAll->setToolTip(tr("Has no effect in Fox mode. Recently-worked stations are always hidden from the calling list regardless."));
     if(m_config.superFox()) {
       ui->labDXped->setText(tr ("Super Fox"));
     } else {
@@ -11084,6 +11087,7 @@ void MainWindow::on_actionFT8_triggered()
       displayWidgets(nWidgets("11111000010011000001000000000011000000"));
       ui->labDXped->setText(tr ("Super Hound"));
       ui->cbRxAll->setEnabled(false);
+      ui->cbRxAll->setToolTip("");
       m_wideGraph->setRxFreq(ui->RxFreqSpinBox->value());
       m_wideGraph->setTol(ui->sbFtol->value());
       m_wideGraph->setSuperHound(true);
@@ -11095,6 +11099,7 @@ void MainWindow::on_actionFT8_triggered()
       displayWidgets(nWidgets("11101000010011000001000000000011000000"));
       ui->labDXped->setText(tr ("Hound"));
       ui->cbRxAll->setEnabled(true);
+      ui->cbRxAll->setToolTip("");
       m_wideGraph->setSuperHound(false);
       ui->RxFreqSpinBox->setValue(m_settings->value("RxFreq_old",1500).toInt());
     }

@@ -13,10 +13,10 @@ CAboutDlg::CAboutDlg(QWidget *parent) :
 {
   ui->setupUi(this);
 
-  ui->labelTxt->setText ("<h2>" + QString {"WSJT-X v"
+  ui->labelTxt->setText ("<h2><a href=https://github.com/avantol/WSJT-X-mod-for-ATNi/releases/latest>" + QString {"WSJT-X modified by WM8Q for ATNi v"
                                              + QCoreApplication::applicationVersion ()
                                                                                    //avt 5/17/26
-                                             + " " + revision ()}.simplified () + " (2)<br />"
+                                             + " " + revision ()}.simplified () + "</a><br />"
 
     "WSJT-X implements a number of digital modes designed for <br />"
     "weak-signal Amateur Radio communication.  <br /><br />"

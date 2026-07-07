@@ -2570,6 +2570,25 @@ void Configuration::impl::read_settings ()
 
   auto highlight_items = settings_->value ("DecodeHighlighting", QVariant::fromValue (DecodeHighlightingModel::default_items ())).value<DecodeHighlightingModel::HighlightItems> ();
   if (!highlight_items.size ()) highlight_items = DecodeHighlightingModel::default_items ();
+  // Merge in any default entries missing from the saved settings (for Highlight enum values
+  // added after the user's config was last saved, e.g. HRAL Member).
+  {
+    auto const& defaults = DecodeHighlightingModel::default_items ();
+    for (int i = 0; i < defaults.size (); ++i)
+      {
+        auto const& def = defaults.at (i);
+        bool found = false;
+        for (auto const& saved : highlight_items)
+          {
+            if (saved.type_ == def.type_) { found = true; break; }
+          }
+        if (!found)
+          {
+            int insert_at = qMin (i, highlight_items.size ());
+            highlight_items.insert (insert_at, def);
+          }
+      }
+  }
   decode_highlighing_model_.items (highlight_items);
   highlight_by_mode_ = settings_->value("HighlightByMode", false).toBool ();
   highlight_only_fields_ = settings_->value("OnlyFieldsSought", false).toBool ();

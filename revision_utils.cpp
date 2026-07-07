@@ -61,7 +61,8 @@ QString revision (QString const& scs_rev_string)
       result = revision_from_scs;
     }
 #endif
-  return result.trimmed ();
+  //return result.trimmed ();
+  return " build 6";     //avt 6/14/26  build #
 }
 
 QString version (bool include_patch)

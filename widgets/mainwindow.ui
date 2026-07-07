@@ -2614,6 +2614,16 @@ Double-click to reset to the standard 73 message</string>
                         </item>
                         <item>
                          <property name="text">
+                          <string>CQ ATNI</string>
+                         </property>
+                        </item>
+                        <item>
+                         <property name="text">
+                          <string>CQ HRAL</string>
+                         </property>
+                        </item>
+                        <item>
+                         <property name="text">
                           <string>CQ AF</string>
                          </property>
                         </item>
@@ -2716,6 +2726,9 @@ Double-click to reset to the standard 73 message</string>
                       </item>
                       <item row="0" column="2">
                        <widget class="QCheckBox" name="cbHralOnly">
+                        <property name="toolTip">
+                         <string>Select to view only decodes from HRAL IOTA members.</string>
+                        </property>
                         <property name="text">
                          <string>HRAL only</string>
                         </property>
@@ -2723,6 +2736,9 @@ Double-click to reset to the standard 73 message</string>
                       </item>
                       <item row="1" column="2">
                        <widget class="QCheckBox" name="cbWorkDupes">
+                        <property name="toolTip">
+                         <string>Display filter only. The logger always refuses to write duplicate QSOs regardless of this setting.</string>
+                        </property>
                         <property name="text">
                          <string>Allow Dupes</string>
                         </property>

@@ -6,6 +6,7 @@
 #include <QFont>
 #include <QHash>
 #include <QPair>
+#include <QSet>
 #include <QString>
 #include <QTimer>
 
@@ -26,6 +27,7 @@ public:
     m_config = configuration;
     high_volume_ = high_volume;
   }
+  void setHralMembers (QSet<QString> const * members) { m_hralMembers = members; }
   void setContentFont (QFont const&);
   void insertLineSpacer(QString const&);
   void displayDecodedText(DecodedText const& decodedText, QString const& myCall, QString const& mode,
@@ -70,6 +72,7 @@ private:
   QAction * erase_action_;
 
   QHash<QString, QPair<QColor, QColor>> highlighted_calls_;
+  QSet<QString> const * m_hralMembers = nullptr;
   bool high_volume_;
   QMetaObject::Connection vertical_scroll_connection_;
   long long modified_vertical_scrollbar_max_;
