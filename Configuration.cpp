@@ -2570,13 +2570,36 @@ void Configuration::impl::read_settings ()
 
   auto highlight_items = settings_->value ("DecodeHighlighting", QVariant::fromValue (DecodeHighlightingModel::default_items ())).value<DecodeHighlightingModel::HighlightItems> ();
   if (!highlight_items.size ()) highlight_items = DecodeHighlightingModel::default_items ();
-  // Merge in any default entries missing from the saved settings (for Highlight enum values
-  // added after the user's config was last saved, e.g. HRAL Member).
+  // Dedupe standard entries AND strip any HRAL entries that may have leaked into the
+  // main key. HRAL is stored under a separate settings key for compatibility with
+  // earlier WSJT-X versions: earlier code doesn't know the HRAL enum value, so if it
+  // finds an HRAL entry in the main key its enum-deserialization falls back to
+  // Highlight::CQ (the first enum value) while keeping HRAL's colours intact, then
+  // saves the result back as a phantom "CQ" entry with HRAL colours. Every round-trip
+  // through an older WSJT-X produces another phantom CQ. Splitting HRAL out of the
+  // main key prevents this. Dedupe here also cleans up any historical damage.
+  {
+    DecodeHighlightingModel::HighlightItems deduped;
+    QSet<int> seen;
+    for (auto const& item : highlight_items)
+      {
+        if (item.type_ == DecodeHighlightingModel::Highlight::HRAL) continue;
+        int key = static_cast<int> (item.type_);
+        if (!seen.contains (key))
+          {
+            seen.insert (key);
+            deduped.append (item);
+          }
+      }
+    highlight_items = deduped;
+  }
+  // Merge in any missing standard default entries (skip HRAL — handled separately below).
   {
     auto const& defaults = DecodeHighlightingModel::default_items ();
     for (int i = 0; i < defaults.size (); ++i)
       {
         auto const& def = defaults.at (i);
+        if (def.type_ == DecodeHighlightingModel::Highlight::HRAL) continue;
         bool found = false;
         for (auto const& saved : highlight_items)
           {
@@ -2588,6 +2611,31 @@ void Configuration::impl::read_settings ()
             highlight_items.insert (insert_at, def);
           }
       }
+  }
+  // Load HRAL from its separate key and prepend (position 0, highest priority).
+  // Fall back to the built-in HRAL default if the separate key is absent.
+  {
+    auto hral_items = settings_->value ("DecodeHighlightingHRAL").value<DecodeHighlightingModel::HighlightItems> ();
+    DecodeHighlightingModel::HighlightInfo hral_entry;
+    bool have_hral = false;
+    if (!hral_items.isEmpty () && hral_items.first ().type_ == DecodeHighlightingModel::Highlight::HRAL)
+      {
+        hral_entry = hral_items.first ();
+        have_hral = true;
+      }
+    else
+      {
+        for (auto const& def : DecodeHighlightingModel::default_items ())
+          {
+            if (def.type_ == DecodeHighlightingModel::Highlight::HRAL)
+              {
+                hral_entry = def;
+                have_hral = true;
+                break;
+              }
+          }
+      }
+    if (have_hral) highlight_items.prepend (hral_entry);
   }
   decode_highlighing_model_.items (highlight_items);
   highlight_by_mode_ = settings_->value("HighlightByMode", false).toBool ();
@@ -2866,7 +2914,35 @@ void Configuration::impl::write_settings ()
   settings_->setValue ("Macros", macros_.stringList ());
   settings_->setValue ("stations", QVariant::fromValue (stations_.station_list ()));
   settings_->setValue ("FrequenciesForRegionModes_v2", QVariant::fromValue (frequencies_.frequency_list ()));
-  settings_->setValue ("DecodeHighlighting", QVariant::fromValue (decode_highlighing_model_.items ()));
+  {
+    // Split HRAL out of the main "DecodeHighlighting" key and store it under
+    // "DecodeHighlightingHRAL" instead. Earlier WSJT-X versions read only the main
+    // key and don't understand the HRAL enum value — see the load path for the
+    // full corruption story. Also dedupe the standard entries so any stale
+    // duplicates from prior sessions get cleaned up.
+    auto items_to_save = decode_highlighing_model_.items ();
+    DecodeHighlightingModel::HighlightItems standard;
+    DecodeHighlightingModel::HighlightItems hral_only;
+    QSet<int> seen;
+    for (auto const& item : items_to_save)
+      {
+        if (item.type_ == DecodeHighlightingModel::Highlight::HRAL)
+          {
+            if (hral_only.isEmpty ()) hral_only.append (item); // keep first only
+          }
+        else
+          {
+            int key = static_cast<int> (item.type_);
+            if (!seen.contains (key))
+              {
+                seen.insert (key);
+                standard.append (item);
+              }
+          }
+      }
+    settings_->setValue ("DecodeHighlighting", QVariant::fromValue (standard));
+    settings_->setValue ("DecodeHighlightingHRAL", QVariant::fromValue (hral_only));
+  }
   settings_->setValue ("HighlightByMode", highlight_by_mode_);
   settings_->setValue ("OnlyFieldsSought", highlight_only_fields_);
   settings_->setValue ("IncludeWAEEntities", include_WAE_entities_);
